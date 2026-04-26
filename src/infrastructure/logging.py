@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import cast
 
+from rich.console import Console
 from rich.logging import RichHandler
 from rich.text import Text
 
@@ -30,7 +31,9 @@ class ContextFilter(logging.Filter):
 
 
 def _build_handlers(settings: Settings) -> logging.Handler:
+    console = Console(force_terminal=True, color_system="truecolor")
     console_handler = RequestAwareRichHandler(
+        console=console,
         rich_tracebacks=True,
         show_path=False,
         show_time=True,
@@ -51,8 +54,12 @@ def configure_logging(settings: Settings) -> None:
         force=True,
     )
 
-    logging.getLogger("uvicorn.access").setLevel(logging.INFO)
-    logging.getLogger("uvicorn.error").setLevel(logging.INFO)
+    uvicorn_access_logger = logging.getLogger("uvicorn.access")
+    uvicorn_error_logger = logging.getLogger("uvicorn.error")
+    uvicorn_access_logger.setLevel(logging.INFO)
+    uvicorn_error_logger.setLevel(logging.INFO)
+    uvicorn_access_logger.propagate = True
+    uvicorn_error_logger.propagate = True
     logging.getLogger("litestar").setLevel(logging.INFO)
 
 

@@ -1,0 +1,13 @@
+.git
+.idea
+.mypy_cache
+.ruff_cache
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+logs
+.agents
+README.md
