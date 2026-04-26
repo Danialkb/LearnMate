@@ -4,9 +4,9 @@ from langchain_openai import ChatOpenAI
 from litestar import Router, post
 from litestar.di import Provide
 
-from src.api.dependencies.llm import get_llm
-from src.api.v1.schemas.chat import ChatRequest, ChatResponse
-from src.configs.logging import get_logger
+from api.dependencies.llm import get_llm
+from api.v1.schemas.chat import ChatRequest, ChatResponse
+from infrastructure.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -23,4 +23,5 @@ chat_router = Router(
     path="/chat",
     dependencies={"llm": Provide(get_llm)},
     route_handlers=[chat],
+    tags=["Chat"],
 )

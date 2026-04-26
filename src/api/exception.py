@@ -1,7 +1,7 @@
 from litestar import Request, Response
 import logging
 
-from src.configs.request_context import get_request_id
+from api.middlewares.request_context import get_request_id
 
 logger = logging.getLogger(__name__)
 

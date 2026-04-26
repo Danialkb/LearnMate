@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from langchain_openai import ChatOpenAI
 
-from src.configs.env import Settings
+from configs.env import Settings
 
 
 def build_openai_llm(settings: Settings) -> ChatOpenAI:

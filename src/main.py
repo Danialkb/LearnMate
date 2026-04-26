@@ -3,12 +3,12 @@ from __future__ import annotations
 import uvicorn
 from litestar import Litestar
 
-from src.api.v1.routes import main_router
-from src.configs.env import Settings
-from src.configs.exception import unhandled_exception_handler
-from src.configs.logging import configure_logging, get_logger
-from src.configs.request_context import request_context_middleware
-from src.infrastructure.llm.openai import build_openai_llm
+from api.middlewares.request_context import request_context_middleware
+from api.v1.routes import main_router
+from configs.env import Settings
+from api.exception import unhandled_exception_handler
+from infrastructure.logging import configure_logging, get_logger
+from infrastructure.llm.openai import build_openai_llm
 
 
 def create_app() -> Litestar:
@@ -41,7 +41,7 @@ app = create_app()
 def main() -> None:
     settings: Settings = app.state.settings
     uvicorn.run(
-        "src.main:app",
+        "main:app",
         host=settings.HOST,
         port=settings.PORT,
         reload=settings.DEBUG,

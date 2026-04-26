@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import logging
-from logging.handlers import RotatingFileHandler
-from pathlib import Path
 
 from rich.logging import RichHandler
 from rich.text import Text
 
-from src.configs.env import Settings
-from src.configs.request_context import get_request_id
+from api.middlewares.request_context import get_request_id
+from configs.env import Settings
 
 
 class RequestAwareRichHandler(RichHandler):
@@ -30,7 +28,7 @@ class ContextFilter(logging.Filter):
         return True
 
 
-def _build_handlers(settings: Settings) -> tuple[logging.Handler, logging.Handler]:
+def _build_handlers(settings: Settings) -> logging.Handler:
     console_handler = RequestAwareRichHandler(
         rich_tracebacks=True,
         show_path=False,
@@ -40,32 +38,15 @@ def _build_handlers(settings: Settings) -> tuple[logging.Handler, logging.Handle
     )
     console_handler.setLevel(settings.LOG_LEVEL)
     console_handler.addFilter(ContextFilter())
-
-    log_file = Path(settings.LOG_FILE)
-    log_file.parent.mkdir(parents=True, exist_ok=True)
-    file_handler = RotatingFileHandler(
-        log_file,
-        maxBytes=settings.LOG_MAX_BYTES,
-        backupCount=settings.LOG_BACKUP_COUNT,
-        encoding="utf-8",
-    )
-    file_handler.setLevel(settings.LOG_LEVEL)
-    file_handler.setFormatter(
-        logging.Formatter(
-            "%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | "
-            "request_id=%(request_id)s | %(message)s"
-        )
-    )
-    file_handler.addFilter(ContextFilter())
-    return console_handler, file_handler
+    return console_handler
 
 
 def configure_logging(settings: Settings) -> None:
-    console_handler, file_handler = _build_handlers(settings)
+    console_handler = _build_handlers(settings)
 
     logging.basicConfig(
         level=settings.LOG_LEVEL,
-        handlers=[console_handler, file_handler],
+        handlers=[console_handler],
         force=True,
     )
 
