@@ -3,12 +3,12 @@ from __future__ import annotations
 import uvicorn
 from litestar import Litestar
 
+from api.exception import unhandled_exception_handler
 from api.middlewares.request_context import request_context_middleware
 from api.v1.routes import main_router
 from configs.env import Settings
-from api.exception import unhandled_exception_handler
+from infrastructure.llm.openai import LLMFactory
 from infrastructure.logging import configure_logging, get_logger
-from infrastructure.llm.openai import build_openai_llm
 
 
 def create_app() -> Litestar:
@@ -16,7 +16,11 @@ def create_app() -> Litestar:
 
     configure_logging(settings)
     logger = get_logger(__name__)
-    logger.info("Starting %s in %s mode", settings.APP_NAME, "debug" if settings.DEBUG else "production")
+    logger.info(
+        "Starting %s in %s mode",
+        settings.APP_NAME,
+        "debug" if settings.DEBUG else "production",
+    )
 
     app = Litestar(
         route_handlers=[main_router],
@@ -27,11 +31,7 @@ def create_app() -> Litestar:
         },
     )
     app.state.settings = settings
-    app.state.llm = (
-        build_openai_llm(settings)
-        if settings.LLM_PROVIDER == "openai" and settings.OPENAI_API_KEY
-        else None
-    )
+    app.state.llm_factory = LLMFactory(settings)
     return app
 
 

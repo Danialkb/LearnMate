@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import cast
 
 from rich.logging import RichHandler
 from rich.text import Text
@@ -9,9 +10,9 @@ from api.middlewares.request_context import get_request_id
 from configs.env import Settings
 
 
-class RequestAwareRichHandler(RichHandler):
-    def render_message(self, record: logging.LogRecord, message: str):
-        message_text = super().render_message(record, message)
+class RequestAwareRichHandler(RichHandler):  # type: ignore[misc]
+    def render_message(self, record: logging.LogRecord, message: str) -> Text:
+        message_text = cast(Text, super().render_message(record, message))
         request_id = getattr(record, "request_id", get_request_id())
         if request_id and request_id != "-":
             return Text(f"[{request_id}] ", style="bold cyan") + message_text

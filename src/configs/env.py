@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
-class Settings(BaseSettings):
+class Settings(BaseSettings):  # type: ignore[misc]
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8",

@@ -8,5 +8,5 @@ main_router = Router(
     route_handlers=[
         health_router,
         chat_router,
-    ]
+    ],
 )

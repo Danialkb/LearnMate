@@ -4,7 +4,7 @@ import logging
 import time
 from contextvars import ContextVar
 from http import HTTPStatus
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from litestar import Request
@@ -22,7 +22,7 @@ def get_request_id() -> str:
 
 
 def _extract_request_id(request: Request) -> str:
-    header_value = request.headers.get("x-request-id")
+    header_value: str | None = request.headers.get("x-request-id")
     if header_value:
         return header_value
     return uuid4().hex
@@ -40,7 +40,7 @@ def request_context_middleware(app: ASGIApp) -> ASGIApp:
         started_at = time.perf_counter()
         response_status = HTTPStatus.INTERNAL_SERVER_ERROR
 
-        async def send_wrapper(message: dict) -> None:
+        async def send_wrapper(message: dict[str, Any]) -> None:
             nonlocal response_status
             if message["type"] == "http.response.start":
                 response_status = HTTPStatus(message["status"])

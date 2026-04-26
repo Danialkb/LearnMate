@@ -6,5 +6,4 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    answer: dict
-
+    answer: str

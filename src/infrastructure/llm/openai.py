@@ -1,18 +1,59 @@
 from __future__ import annotations
 
+import os
+
 from langchain_openai import ChatOpenAI
 
 from configs.env import Settings
+from services.llm.enums import LLMUseCase
 
 
-def build_openai_llm(settings: Settings) -> ChatOpenAI:
-    if settings.LLM_PROVIDER != "openai":
-        raise ValueError(f"Unsupported LLM_PROVIDER: {settings.LLM_PROVIDER}")
+class LLMFactory:
+    def __init__(self, settings: Settings):
+        if not settings.OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY is required")
 
-    if not settings.OPENAI_API_KEY:
-        raise ValueError("OPENAI_API_KEY is required for OpenAI LLM")
+        self.settings = settings
+        os.environ["OPENAI_API_KEY"] = settings.OPENAI_API_KEY
 
-    return ChatOpenAI(
-        model=settings.LLM_MODEL,
-        api_key=settings.OPENAI_API_KEY,
-    )
+    def create(self, use_case: LLMUseCase) -> ChatOpenAI:
+        base_config = {
+            "model": self.settings.LLM_MODEL,
+            "max_retries": 3,
+            "timeout": 30,
+        }
+
+        match use_case:
+            case LLMUseCase.SUMMARY:
+                return ChatOpenAI(
+                    **base_config,
+                    temperature=0.2,
+                    max_tokens=800,
+                    frequency_penalty=0.3,
+                    presence_penalty=0.0,
+                )
+
+            case LLMUseCase.QUIZ:
+                return ChatOpenAI(
+                    **base_config,
+                    temperature=0.7,
+                    max_tokens=500,
+                    frequency_penalty=0.5,
+                    presence_penalty=0.4,
+                )
+
+            case LLMUseCase.RAG:
+                return ChatOpenAI(
+                    **base_config,
+                    temperature=0.1,
+                    max_tokens=1000,
+                    frequency_penalty=0.2,
+                    presence_penalty=0.0,
+                )
+
+            case LLMUseCase.CHAT:
+                return ChatOpenAI(
+                    **base_config,
+                    temperature=0.5,
+                    max_tokens=1000,
+                )

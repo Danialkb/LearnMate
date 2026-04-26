@@ -1,5 +1,6 @@
-from litestar import Request, Response
 import logging
+
+from litestar import Request, Response
 
 from api.middlewares.request_context import get_request_id
 

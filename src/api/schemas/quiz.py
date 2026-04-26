@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, conlist
+from pydantic import BaseModel, Field
 
 
 class QuizGenerationRequest(BaseModel):
@@ -20,7 +20,7 @@ class QuizGenerationRequest(BaseModel):
 
 class QuizQuestion(BaseModel):
     prompt: str
-    options: conlist(str, min_length=2, max_length=5)
+    options: Annotated[list[str], Field(min_length=2, max_length=5)]
     correct_index: int = Field(ge=0)
     explanation: str
     source_hint: str | None = None

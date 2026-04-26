@@ -46,5 +46,6 @@ ignore = [
 python_version = "3.11"
 strict = true
 ignore_missing_imports = true
+mypy_path = "src"
 plugins = ["pydantic.mypy"]
 disallow_untyped_decorators = false
