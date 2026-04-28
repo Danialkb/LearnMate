@@ -1,7 +1,7 @@
 from litestar import Router
 
 materials_router = Router(
-    path="/materials",
+    path="/documents",
     route_handlers=[],
     tags=["Materials"],
 )
