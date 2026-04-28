@@ -1,4 +1,4 @@
-from litestar import get, Router
+from litestar import Router, get
 
 
 @get("/health")

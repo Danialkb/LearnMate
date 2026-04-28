@@ -7,12 +7,14 @@ from api.exception import unhandled_exception_handler
 from api.middlewares.request_context import request_context_middleware
 from api.v1.routes import main_router
 from configs.env import Settings
+from infrastructure.db.session import DatabaseService
 from infrastructure.llm.openai import LLMFactory
 from infrastructure.logging import configure_logging, get_logger
 
 
 def create_app() -> Litestar:
     settings = Settings()
+    database_service = DatabaseService(settings)
 
     configure_logging(settings)
     logger = get_logger(__name__)
@@ -29,9 +31,11 @@ def create_app() -> Litestar:
         exception_handlers={
             Exception: unhandled_exception_handler,
         },
+        on_shutdown=[database_service.dispose],
     )
     app.state.settings = settings
     app.state.llm_factory = LLMFactory(settings)
+    app.state.database_service = database_service
     return app
 
 
