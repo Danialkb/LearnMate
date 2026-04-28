@@ -2,35 +2,35 @@ import enum
 
 
 class DocumentFormat(str, enum.Enum):
-    PDF = "pdf"
-    DOCX = "docx"
-    TXT = "txt"
-    MARKDOWN = "markdown"
-    WEB_PAGE = "web_page"
+    PDF = "PDF"
+    DOCX = "DOCX"
+    TXT = "TXT"
+    MARKDOWN = "MARKDOWN"
+    WEB_PAGE = "WEB_PAGE"
 
 
 class DocumentLifecycleStatus(str, enum.Enum):
-    NEW = "new"
-    PROCESSING = "processing"
-    READY = "ready"
-    FAILED = "failed"
-    ARCHIVED = "archived"
+    NEW = "NEW"
+    PROCESSING = "PROCESSING"
+    READY = "READY"
+    FAILED = "FAILED"
+    ARCHIVED = "ARCHIVED"
 
 
 class DocumentSourceType(str, enum.Enum):
-    LOCAL_FILE = "local_file"
-    URL = "url"
-    TEXT_INPUT = "text_input"
+    LOCAL_FILE = "LOCAL_FILE"
+    URL = "URL"
+    TEXT_INPUT = "TEXT_INPUT"
 
 
 class ProcessingJobType(str, enum.Enum):
-    EXTRACT_TEXT = "extract_text"
-    CHUNKING = "chunking"
-    EMBEDDING = "embedding"
+    EXTRACT_TEXT = "EXTRACT_TEXT"
+    CHUNKING = "CHUNKING"
+    EMBEDDING = "EMBEDDING"
 
 
 class ProcessingJobStatus(str, enum.Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    SUCCESS = "success"
-    FAILED = "failed"
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    SUCCESS = "SUCCESS"
+    FAILED = "FAILED"

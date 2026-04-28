@@ -9,7 +9,7 @@ from sqlalchemy import (
     DateTime,
 )
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from infrastructure.db import Base
@@ -81,7 +81,7 @@ class DocumentSource(UUIDMixin, CreatedAtMixin, Base):
     chunks: Mapped[list["DocumentChunk"]] = relationship(back_populates="source")
 
 
-class DocumentChunk(UUIDMixin, Base):
+class DocumentChunk(UUIDMixin, CreatedAtMixin, Base):
     __tablename__ = "document_chunks"
     __table_args__ = (
         UniqueConstraint(
@@ -110,10 +110,6 @@ class DocumentChunk(UUIDMixin, Base):
     page_end: Mapped[int | None] = mapped_column(Integer)
 
     vector_point_id: Mapped[str | None] = mapped_column(String(255), index=True)
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
 
     document: Mapped[Document] = relationship(back_populates="chunks")
     source: Mapped[DocumentSource | None] = relationship(back_populates="chunks")

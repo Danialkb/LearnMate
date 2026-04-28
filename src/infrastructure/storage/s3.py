@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
+from uuid import UUID, uuid4
 
 import aioboto3
 from botocore.config import Config
@@ -35,6 +38,30 @@ class S3Storage:
         )
         self._client_config = Config(
             s3={"addressing_style": "path" if settings.S3_USE_PATH_STYLE else "virtual"}
+        )
+
+    @staticmethod
+    def _sanitize_key_part(value: str) -> str:
+        normalized = re.sub(r"[^A-Za-z0-9._-]+", "_", value.strip())
+        normalized = normalized.strip("._-")
+        return normalized or "file"
+
+    def generate_document_object_key(
+        self,
+        *,
+        document_id: UUID,
+        filename: str,
+        namespace: str = "materials",
+        created_at: datetime | None = None,
+    ) -> str:
+        timestamp = created_at or datetime.now(UTC)
+        safe_filename = self._sanitize_key_part(filename)
+        random_prefix = uuid4().hex[:8]
+        return (
+            f"{self._sanitize_key_part(namespace)}/"
+            f"{timestamp:%Y/%m/%d}/"
+            f"documents/{document_id}/"
+            f"{random_prefix}_{safe_filename}"
         )
 
     @property
@@ -96,3 +123,7 @@ class S3Storage:
             body = response["Body"]
             data = await body.read()
             return bytes(data)
+
+    async def delete_file(self, *, key: str) -> None:
+        async with self._client() as client:
+            await client.delete_object(Bucket=self.bucket_name, Key=key)
