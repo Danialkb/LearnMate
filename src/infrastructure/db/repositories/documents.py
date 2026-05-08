@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -72,6 +72,17 @@ class DocumentRepositoryImpl(DocumentRepository):
         self._session.add_all(chunk_models)
         await self._session.flush()
         return chunk_models
+
+    async def replace_chunks(
+        self,
+        document_id: UUID,
+        chunks: Sequence[DocumentChunkCreateData],
+    ) -> list[DocumentChunk]:
+        await self._session.execute(
+            delete(DocumentChunk).where(DocumentChunk.document_id == document_id)
+        )
+        await self._session.flush()
+        return await self.create_chunks(document_id=document_id, chunks=chunks)
 
     async def get_document_by_id(self, document_id: UUID) -> Document | None:
         statement = (

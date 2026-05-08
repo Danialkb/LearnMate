@@ -71,6 +71,13 @@ class DocumentRepository(ABC):
     ) -> list[DocumentChunk]: ...
 
     @abstractmethod
+    async def replace_chunks(
+        self,
+        document_id: UUID,
+        chunks: Sequence[DocumentChunkCreateData],
+    ) -> list[DocumentChunk]: ...
+
+    @abstractmethod
     async def get_document_by_id(self, document_id: UUID) -> Document | None: ...
 
     @abstractmethod

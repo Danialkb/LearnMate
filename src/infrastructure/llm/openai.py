@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-
 from langchain_openai import ChatOpenAI
 
 from configs.env import Settings
@@ -14,11 +12,11 @@ class LLMFactory:
             raise ValueError("OPENAI_API_KEY is required")
 
         self.settings = settings
-        os.environ["OPENAI_API_KEY"] = settings.OPENAI_API_KEY
 
     def create(self, use_case: LLMUseCase) -> ChatOpenAI:
         base_config = {
             "model": self.settings.LLM_MODEL,
+            "api_key": self.settings.OPENAI_API_KEY,
             "max_retries": 3,
             "timeout": 30,
         }

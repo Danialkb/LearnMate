@@ -28,6 +28,22 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = Field(default="openai", alias="LLM_PROVIDER")
     LLM_MODEL: str = Field(default="gpt-5.4-mini", alias="LLM_MODEL")
     OPENAI_API_KEY: str | None = Field(default=None, alias="OPENAI_API_KEY")
+    OPENAI_EMBEDDING_MODEL: str = Field(
+        default="text-embedding-3-small",
+        alias="OPENAI_EMBEDDING_MODEL",
+    )
+    OPENAI_EMBEDDING_DIMENSIONS: int = Field(
+        default=1536,
+        alias="OPENAI_EMBEDDING_DIMENSIONS",
+    )
+
+    QDRANT_URL: str = Field(default="http://localhost:6333", alias="QDRANT_URL")
+    QDRANT_API_KEY: str | None = Field(default=None, alias="QDRANT_API_KEY")
+    QDRANT_COLLECTION_NAME: str = Field(
+        default="learnmate_document_chunks",
+        alias="QDRANT_COLLECTION_NAME",
+    )
+    QDRANT_DISTANCE: str = Field(default="COSINE", alias="QDRANT_DISTANCE")
 
     S3_ACCESS_KEY_ID: str | None = Field(default=None, alias="S3_ACCESS_KEY_ID")
     S3_SECRET_ACCESS_KEY: str | None = Field(default=None, alias="S3_SECRET_ACCESS_KEY")
