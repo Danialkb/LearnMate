@@ -1,0 +1,126 @@
+# RAG TEST DOCUMENT — LearnMate Vectorization Check
+
+This document is created only for testing vectorization, retrieval, and RAG answer generation.
+The facts below are fictional and intentionally specific, so a normal LLM should not know them without retrieving this file.
+
+## Main Project Facts
+
+The project name is LearnMate.
+LearnMate is a local personal learning assistant for studying educational materials.
+The main goal of LearnMate is to help the user upload learning content, generate summaries, create quizzes, and ask questions about uploaded materials.
+
+The secret project code is LM-RAG-7429.
+If the assistant can answer with this exact code, retrieval is working.
+
+The fictional internal mascot of LearnMate is a blue owl named Quby.
+Quby represents careful reading, memory, and structured learning.
+
+The preferred answer style for LearnMate is simple, direct, and educational.
+Answers should explain concepts step by step and avoid unnecessary academic jargon.
+
+## Technical Stack
+
+The backend framework used in LearnMate is Litestar.
+The project uses Pydantic for data validation and settings.
+The project uses LangChain and LangGraph for working with LLM workflows.
+The planned vector database is Qdrant.
+Raw uploaded files should be stored in S3-compatible object storage, for example MinIO.
+PostgreSQL should store metadata, document records, processing job statuses, and user-facing information.
+
+The project should not store large raw text directly in PostgreSQL.
+Instead, extracted text can be saved as a file in object storage, while chunks and embeddings are stored or referenced through the vector database.
+
+## Document Processing Pipeline
+
+The LearnMate document pipeline has several steps:
+1. Upload the original file.
+2. Create a document record in the database.
+3. Extract text from the file.
+4. Split the extracted text into chunks.
+5. Create embeddings for each chunk.
+6. Store embeddings in Qdrant.
+7. Use retrieved chunks as context when answering user questions.
+
+The processing job types are:
+- EXTRACT_TEXT
+- CHUNKING
+- EMBEDDING
+- SUMMARY_GENERATION
+- QUIZ_GENERATION
+
+The processing job statuses are:
+- PENDING
+- RUNNING
+- SUCCESS
+- FAILED
+
+## Special Test Facts
+
+The fictional launch date of LearnMate is 17 March 2027.
+The fictional first uploaded document in LearnMate is called “Async Python for Calm Developers”.
+The fictional quiz difficulty levels are:
+- easy
+- medium
+- hard
+- nightmare
+
+The special phrase for testing retrieval is:
+“Vector search found the blue owl.”
+
+If the assistant can repeat this phrase exactly, then the relevant chunk was probably retrieved.
+
+## RAG Behavior Rules
+
+When the user asks about information from uploaded files, LearnMate should answer using retrieved context.
+If the answer is not present in the uploaded document, LearnMate should say that the information was not found in the provided materials.
+LearnMate should not invent facts when the retrieved context is insufficient.
+
+A good RAG answer should:
+- use only the retrieved context when answering document-specific questions;
+- mention uncertainty when the document does not contain enough information;
+- keep the answer clear and useful;
+- optionally include the source document title or chunk reference.
+
+## Control Questions for Testing
+
+Use these questions after uploading and vectorizing this file:
+
+1. What is the secret project code of LearnMate?
+Expected answer: LM-RAG-7429.
+
+2. What is the name of LearnMate’s mascot?
+Expected answer: Quby.
+
+3. What color is Quby?
+Expected answer: blue.
+
+4. What vector database is planned for LearnMate?
+Expected answer: Qdrant.
+
+5. Should LearnMate store large raw text directly in PostgreSQL?
+Expected answer: No, it should store raw or extracted text in object storage and keep metadata in PostgreSQL.
+
+6. What are the processing job types?
+Expected answer: EXTRACT_TEXT, CHUNKING, EMBEDDING, SUMMARY_GENERATION, QUIZ_GENERATION.
+
+7. What is the special phrase for testing retrieval?
+Expected answer: Vector search found the blue owl.
+
+8. What is the fictional first uploaded document called?
+Expected answer: Async Python for Calm Developers.
+
+9. What are the quiz difficulty levels?
+Expected answer: easy, medium, hard, nightmare.
+
+10. What should LearnMate do if the answer is not present in the uploaded document?
+Expected answer: It should say that the information was not found in the provided materials and should not invent facts.
+
+## Negative Test
+
+Question:
+What payment provider does LearnMate use?
+
+Expected answer:
+The document does not specify a payment provider.
+
+This negative test helps check whether the RAG system prevents hallucinations.

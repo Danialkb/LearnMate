@@ -34,6 +34,7 @@ class DocumentRetrievalService:
         limit: int = 5,
         document_id: str | None = None,
     ) -> list[RetrievedChunk]:
+        await self._vector_index.ensure_collection()
         query_vector = await self._embeddings.embed_query(query)
         results = await self._vector_index.search(
             query_vector=query_vector,

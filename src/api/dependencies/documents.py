@@ -3,10 +3,10 @@ from __future__ import annotations
 from litestar.datastructures import State
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from infrastructure.db.qdrant import QdrantDocumentVectorIndex
 from infrastructure.db.repositories.documents import DocumentRepositoryImpl
 from infrastructure.llm.embeddings import OpenAIEmbeddingClient
 from infrastructure.storage.s3 import S3Storage
+from infrastructure.vector import QdrantDocumentVectorIndex
 from services.documents.chunking import TextChunker
 from services.documents.extraction import DocumentTextExtractor
 

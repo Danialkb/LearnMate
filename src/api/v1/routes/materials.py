@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
-from litestar import Request, Router, post
-from litestar.datastructures import UploadFile
+from litestar import Router, post
 from litestar.di import Provide
+from litestar.enums import RequestEncodingType
 from litestar.exceptions import HTTPException
+from litestar.params import Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies.documents import (
@@ -16,7 +18,11 @@ from api.dependencies.documents import (
     get_text_chunker,
     get_text_extractor,
 )
-from api.v1.schemas.documents import DocumentIndexResponse, DocumentUploadResponse
+from api.v1.schemas.documents import (
+    DocumentIndexResponse,
+    DocumentUploadForm,
+    DocumentUploadResponse,
+)
 from infrastructure.db.repositories.documents import DocumentRepositoryImpl
 from infrastructure.llm.embeddings import OpenAIEmbeddingClient
 from infrastructure.logging import get_logger
@@ -42,7 +48,10 @@ def _clean_form_value(value: object | None) -> str | None:
 
 @post("/upload", status_code=201)
 async def upload_material(
-    request: Request,
+    data: Annotated[
+        DocumentUploadForm,
+        Body(media_type=RequestEncodingType.MULTI_PART),
+    ],
     session: AsyncSession,
     document_repository: DocumentRepositoryImpl,
     s3_storage: S3Storage,
@@ -51,19 +60,10 @@ async def upload_material(
     embedding_client: OpenAIEmbeddingClient,
     document_vector_index: QdrantDocumentVectorIndex,
 ) -> DocumentUploadResponse:
-    form = await request.form()
-    uploaded_file = form.get("file")
-    if not isinstance(uploaded_file, UploadFile):
-        raise HTTPException(status_code=400, detail="File field 'file' is required")
-
-    title = _clean_form_value(form.get("title"))
-    description = _clean_form_value(form.get("description"))
-    language = _clean_form_value(form.get("language"))
-
     try:
-        file_data = await uploaded_file.read()
+        file_data = await data.file.read()
     finally:
-        await uploaded_file.close()
+        await data.file.close()
 
     service = DocumentUploadService(
         session=session,
@@ -71,11 +71,15 @@ async def upload_material(
         storage=s3_storage,
     )
 
-    logger.info("Uploading material filename=%s", uploaded_file.filename)
+    title = _clean_form_value(data.title)
+    description = _clean_form_value(data.description)
+    language = _clean_form_value(data.language)
+
+    logger.info("Uploading material filename=%s", data.file.filename)
     result = await service.upload_file(
         data=file_data,
-        filename=uploaded_file.filename,
-        content_type=uploaded_file.content_type,
+        filename=data.file.filename,
+        content_type=data.file.content_type,
         title=title,
         description=description,
         language=language,

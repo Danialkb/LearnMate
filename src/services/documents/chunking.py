@@ -21,7 +21,7 @@ class ChunkDraft:
 
 
 class TextChunker:
-    def __init__(self, *, chunk_size: int = 800, chunk_overlap: int = 120) -> None:
+    def __init__(self, *, chunk_size: int = 400, chunk_overlap: int = 80) -> None:
         if chunk_size <= 0:
             raise ValueError("chunk_size must be greater than zero")
         if chunk_overlap < 0:
