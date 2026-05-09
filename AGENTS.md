@@ -75,5 +75,11 @@ When changing code:
 - run ruff if available
 - run tests if available
 
+## Repository workflow
+
+- Before committing, inspect the working tree and avoid reverting unrelated user changes.
+- Keep commits focused, but include supporting tests or fixtures when they are part of the same behavior change.
+- Prefer pushing to the current feature branch unless the user explicitly asks for a different branch.
+
 ## Other rules
 Do not use src. in import statements
