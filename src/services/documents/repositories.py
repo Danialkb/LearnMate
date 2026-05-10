@@ -11,6 +11,7 @@ from services.documents.enums import (
     DocumentFormat,
     DocumentLifecycleStatus,
     DocumentSourceType,
+    DocumentSummaryStyle,
 )
 
 if TYPE_CHECKING:
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
         Document,
         DocumentChunk,
         DocumentSource,
+        DocumentSummary,
     )
 
 
@@ -56,6 +58,16 @@ class DocumentChunkCreateData:
     vector_point_id: str | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class DocumentSummarySaveData:
+    document_id: UUID
+    style: DocumentSummaryStyle
+    language: str | None
+    content: str
+    prompt_version: str
+    source_document_version: int
+
+
 class DocumentRepository(ABC):
     @abstractmethod
     async def create_document(self, data: DocumentCreateData) -> Document: ...
@@ -86,3 +98,15 @@ class DocumentRepository(ABC):
         document_id: UUID,
         lifecycle_status: DocumentLifecycleStatus,
     ) -> Document | None: ...
+
+    @abstractmethod
+    async def get_summary(
+        self,
+        *,
+        document_id: UUID,
+        style: DocumentSummaryStyle,
+        source_document_version: int,
+    ) -> DocumentSummary | None: ...
+
+    @abstractmethod
+    async def save_summary(self, data: DocumentSummarySaveData) -> DocumentSummary: ...

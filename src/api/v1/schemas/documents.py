@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from litestar.datastructures import UploadFile
 from pydantic import BaseModel, ConfigDict
 
-from services.documents.enums import DocumentFormat, DocumentLifecycleStatus
+from services.documents.enums import (
+    DocumentFormat,
+    DocumentLifecycleStatus,
+    DocumentSummaryStyle,
+)
 
 
 class DocumentUploadForm(BaseModel):
@@ -30,3 +36,20 @@ class DocumentIndexResponse(BaseModel):
     chunk_count: int
     vector_count: int
     lifecycle_status: DocumentLifecycleStatus
+
+
+class DocumentSummaryRequest(BaseModel):
+    style: DocumentSummaryStyle = DocumentSummaryStyle.BRIEF
+    refresh: bool = False
+
+
+class DocumentSummaryResponse(BaseModel):
+    summary_id: str
+    document_id: str
+    style: DocumentSummaryStyle
+    language: str | None
+    content: str
+    source_document_version: int
+    cached: bool
+    created_at: datetime
+    updated_at: datetime

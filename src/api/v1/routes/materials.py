@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 from uuid import UUID
 
-from litestar import Router, post
+from litestar import Router, get, post
 from litestar.di import Provide
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import HTTPException
@@ -18,23 +18,38 @@ from api.dependencies.documents import (
     get_text_chunker,
     get_text_extractor,
 )
+from api.dependencies.llm import get_llm_factory
 from api.v1.schemas.documents import (
     DocumentIndexResponse,
+    DocumentSummaryRequest,
+    DocumentSummaryResponse,
     DocumentUploadForm,
     DocumentUploadResponse,
 )
 from infrastructure.db.repositories.documents import DocumentRepositoryImpl
 from infrastructure.llm.embeddings import OpenAIEmbeddingClient
+from infrastructure.llm.openai import LLMFactory
 from infrastructure.logging import get_logger
 from infrastructure.storage.s3 import S3Storage
 from infrastructure.vector import QdrantDocumentVectorIndex
 from services.documents.chunking import TextChunker
-from services.documents.enums import DocumentLifecycleStatus
+from services.documents.enums import DocumentLifecycleStatus, DocumentSummaryStyle
 from services.documents.extraction import DocumentTextExtractor
 from services.documents.indexing import DocumentIndexingService
+from services.documents.summary import (
+    DocumentHasNoChunksError,
+    DocumentNotFoundError,
+    DocumentNotReadyError,
+    DocumentSummaryNotFoundError,
+    DocumentSummaryService,
+)
 from services.documents.upload import DocumentUploadService
+from services.llm.enums import LLMUseCase
 
 logger = get_logger(__name__)
+
+if TYPE_CHECKING:
+    from infrastructure.db.models.document import DocumentSummary
 
 
 def _clean_form_value(value: object | None) -> str | None:
@@ -164,10 +179,77 @@ async def index_material(
     )
 
 
+@post("/{document_id:uuid}/summary", status_code=200)
+async def generate_document_summary(
+    document_id: UUID,
+    data: DocumentSummaryRequest,
+    session: AsyncSession,
+    document_repository: DocumentRepositoryImpl,
+    llm_factory: LLMFactory,
+) -> DocumentSummaryResponse:
+    service = DocumentSummaryService(
+        repository=document_repository,
+        llm=llm_factory.create(LLMUseCase.SUMMARY),
+    )
+    try:
+        result = await service.generate_summary(
+            document_id=document_id,
+            style=data.style,
+            refresh=data.refresh,
+        )
+    except DocumentNotFoundError:
+        raise HTTPException(status_code=404, detail="Document not found")
+    except DocumentNotReadyError:
+        raise HTTPException(status_code=409, detail="Document is not ready")
+    except DocumentHasNoChunksError:
+        raise HTTPException(status_code=400, detail="Document has no chunks")
+
+    if not result.cached:
+        await session.commit()
+
+    return _summary_response(result.summary, cached=result.cached)
+
+
+@get("/{document_id:uuid}/summary")
+async def get_document_summary(
+    document_id: UUID,
+    document_repository: DocumentRepositoryImpl,
+    style: DocumentSummaryStyle = DocumentSummaryStyle.BRIEF,
+) -> DocumentSummaryResponse:
+    service = DocumentSummaryService(repository=document_repository)
+    try:
+        summary = await service.get_summary(document_id=document_id, style=style)
+    except DocumentNotFoundError:
+        raise HTTPException(status_code=404, detail="Document not found")
+    except DocumentSummaryNotFoundError:
+        raise HTTPException(status_code=404, detail="Document summary not found")
+
+    return _summary_response(summary, cached=True)
+
+
+def _summary_response(
+    summary: DocumentSummary,
+    *,
+    cached: bool,
+) -> DocumentSummaryResponse:
+    return DocumentSummaryResponse(
+        summary_id=str(summary.id),
+        document_id=str(summary.document_id),
+        style=summary.style,
+        language=summary.language,
+        content=summary.content,
+        source_document_version=summary.source_document_version,
+        cached=cached,
+        created_at=summary.created_at,
+        updated_at=summary.updated_at,
+    )
+
+
 materials_router = Router(
     path="/documents",
     dependencies={
         "document_repository": Provide(get_document_repository, sync_to_thread=False),
+        "llm_factory": Provide(get_llm_factory, sync_to_thread=False),
         "s3_storage": Provide(get_s3_storage, sync_to_thread=False),
         "text_extractor": Provide(get_text_extractor, sync_to_thread=False),
         "text_chunker": Provide(get_text_chunker, sync_to_thread=False),
@@ -177,6 +259,11 @@ materials_router = Router(
             sync_to_thread=False,
         ),
     },
-    route_handlers=[upload_material, index_material],
+    route_handlers=[
+        upload_material,
+        index_material,
+        generate_document_summary,
+        get_document_summary,
+    ],
     tags=["Materials"],
 )

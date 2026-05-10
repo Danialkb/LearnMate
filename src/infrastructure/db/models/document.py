@@ -18,6 +18,7 @@ from services.documents.enums import (
     DocumentFormat,
     DocumentLifecycleStatus,
     DocumentSourceType,
+    DocumentSummaryStyle,
 )
 
 
@@ -48,6 +49,10 @@ class Document(UUIDMixin, TimestampMixin, Base):
         back_populates="document",
         cascade="all, delete-orphan",
         order_by="DocumentChunk.chunk_index",
+    )
+    summaries: Mapped[list["DocumentSummary"]] = relationship(
+        back_populates="document",
+        cascade="all, delete-orphan",
     )
 
 
@@ -113,3 +118,36 @@ class DocumentChunk(UUIDMixin, CreatedAtMixin, Base):
 
     document: Mapped[Document] = relationship(back_populates="chunks")
     source: Mapped[DocumentSource | None] = relationship(back_populates="chunks")
+
+
+class DocumentSummary(UUIDMixin, TimestampMixin, Base):
+    __tablename__ = "document_summaries"
+    __table_args__ = (
+        UniqueConstraint(
+            "document_id",
+            "style",
+            "source_document_version",
+            name="uq_document_summaries_document_style_version",
+        ),
+    )
+
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("documents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    style: Mapped[DocumentSummaryStyle] = mapped_column(
+        SAEnum(
+            DocumentSummaryStyle,
+            name="document_summary_style",
+            values_callable=lambda enum_cls: [item.value for item in enum_cls],
+        ),
+        nullable=False,
+    )
+    language: Mapped[str | None] = mapped_column(String(20))
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    prompt_version: Mapped[str] = mapped_column(String(50), nullable=False)
+    source_document_version: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    document: Mapped[Document] = relationship(back_populates="summaries")

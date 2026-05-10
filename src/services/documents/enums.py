@@ -23,6 +23,12 @@ class DocumentSourceType(str, enum.Enum):
     TEXT_INPUT = "TEXT_INPUT"
 
 
+class DocumentSummaryStyle(str, enum.Enum):
+    BRIEF = "brief"
+    DETAILED = "detailed"
+    BULLETS = "bullets"
+
+
 class ProcessingJobType(str, enum.Enum):
     EXTRACT_TEXT = "EXTRACT_TEXT"
     CHUNKING = "CHUNKING"

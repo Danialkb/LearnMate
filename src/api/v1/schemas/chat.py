@@ -23,3 +23,5 @@ class RetrievedSource(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     sources: list[RetrievedSource] = Field(default_factory=list)
+    intent: str | None = None
+    used_general_knowledge: bool = False

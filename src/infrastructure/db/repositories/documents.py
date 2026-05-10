@@ -7,13 +7,19 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from infrastructure.db.models.document import Document, DocumentChunk, DocumentSource
-from services.documents.enums import DocumentLifecycleStatus
+from infrastructure.db.models.document import (
+    Document,
+    DocumentChunk,
+    DocumentSource,
+    DocumentSummary,
+)
+from services.documents.enums import DocumentLifecycleStatus, DocumentSummaryStyle
 from services.documents.repositories import (
     DocumentChunkCreateData,
     DocumentCreateData,
     DocumentRepository,
     DocumentSourceCreateData,
+    DocumentSummarySaveData,
 )
 
 
@@ -110,3 +116,48 @@ class DocumentRepositoryImpl(DocumentRepository):
         document.lifecycle_status = lifecycle_status
         await self._session.flush()
         return document
+
+    async def get_summary(
+        self,
+        *,
+        document_id: UUID,
+        style: DocumentSummaryStyle,
+        source_document_version: int,
+    ) -> DocumentSummary | None:
+        statement = select(DocumentSummary).where(
+            DocumentSummary.document_id == document_id,
+            DocumentSummary.style == style,
+            DocumentSummary.source_document_version == source_document_version,
+        )
+        result = await self._session.execute(statement)
+        return result.scalar_one_or_none()
+
+    async def save_summary(self, data: DocumentSummarySaveData) -> DocumentSummary:
+        statement = (
+            select(DocumentSummary)
+            .where(
+                DocumentSummary.document_id == data.document_id,
+                DocumentSummary.style == data.style,
+                DocumentSummary.source_document_version == data.source_document_version,
+            )
+            .with_for_update()
+        )
+        result = await self._session.execute(statement)
+        summary = result.scalar_one_or_none()
+        if summary is None:
+            summary = DocumentSummary(
+                document_id=data.document_id,
+                style=data.style,
+                language=data.language,
+                content=data.content,
+                prompt_version=data.prompt_version,
+                source_document_version=data.source_document_version,
+            )
+            self._session.add(summary)
+        else:
+            summary.language = data.language
+            summary.content = data.content
+            summary.prompt_version = data.prompt_version
+
+        await self._session.flush()
+        return summary

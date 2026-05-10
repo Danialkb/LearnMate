@@ -74,6 +74,8 @@ When changing code:
 - run mypy if available
 - run ruff if available
 - run tests if available
+- do not ask the user before running tests, linters, format checks, type checks,
+  or other non-mutating code analyzers
 
 ## Repository workflow
 

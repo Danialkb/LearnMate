@@ -11,6 +11,8 @@ from infrastructure.llm.openai import LLMFactory
 from infrastructure.logging import get_logger
 from infrastructure.vector import QdrantDocumentVectorIndex
 from services.documents.retrieval import DocumentRetrievalService, RetrievedChunk
+from services.documents.topic_summary import TopicSummaryService
+from services.llm.chat_agent import ChatAgentService
 from services.llm.enums import LLMUseCase
 from services.llm.rag import RAGAnswerService
 
@@ -25,31 +27,51 @@ async def chat(
     document_vector_index: QdrantDocumentVectorIndex,
 ) -> ChatResponse:
     logger.info("Received chat request")
-    if data.use_rag:
-        retrieval = DocumentRetrievalService(
-            embeddings=embedding_client,
-            vector_index=document_vector_index,
-        )
-        service = RAGAnswerService(
-            retrieval=retrieval,
-            llm=llm_factory.create(LLMUseCase.RAG),
-        )
-        result = await service.answer(
-            question=data.message,
-            limit=data.top_k,
-            document_id=data.document_id,
-            score_threshold=data.score_threshold,
-        )
-        logger.info("RAG chat response generated sources=%s", len(result.sources))
+    if not data.use_rag:
+        llm = llm_factory.create(LLMUseCase.CHAT)
+        response = await llm.ainvoke(data.message)
+        logger.info("Chat response generated")
         return ChatResponse(
-            answer=result.answer,
-            sources=[_source_from_chunk(chunk) for chunk in result.sources],
+            answer=str(response.content),
+            intent="chat",
+            used_general_knowledge=True,
         )
 
-    llm = llm_factory.create(LLMUseCase.CHAT)
-    response = await llm.ainvoke(data.message)
-    logger.info("Chat response generated")
-    return ChatResponse(answer=str(response.content))
+    retrieval = DocumentRetrievalService(
+        embeddings=embedding_client,
+        vector_index=document_vector_index,
+    )
+    rag_service = RAGAnswerService(
+        retrieval=retrieval,
+        llm=llm_factory.create(LLMUseCase.RAG),
+    )
+    topic_summary_service = TopicSummaryService(
+        retrieval=retrieval,
+        llm=llm_factory.create(LLMUseCase.SUMMARY),
+    )
+    chat_agent = ChatAgentService(
+        model=llm_factory.create(LLMUseCase.CHAT),
+        rag=rag_service,
+        topic_summary=topic_summary_service,
+    )
+    result = await chat_agent.answer(
+        message=data.message,
+        limit=data.top_k,
+        document_id=data.document_id,
+        score_threshold=data.score_threshold,
+    )
+    logger.info(
+        "Agent chat response generated intent=%s sources=%s general=%s",
+        result.intent,
+        len(result.sources),
+        result.used_general_knowledge,
+    )
+    return ChatResponse(
+        answer=result.answer,
+        sources=[_source_from_chunk(chunk) for chunk in result.sources],
+        intent=result.intent,
+        used_general_knowledge=result.used_general_knowledge,
+    )
 
 
 def _source_from_chunk(chunk: RetrievedChunk) -> RetrievedSource:
