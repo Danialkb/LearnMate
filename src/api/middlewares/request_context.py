@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from litestar import Request
+from litestar.enums import ScopeType
 from litestar.types import ASGIApp
 
 if TYPE_CHECKING:
@@ -21,7 +22,7 @@ def get_request_id() -> str:
     return request_id_var.get()
 
 
-def _extract_request_id(request: Request) -> str:
+def _extract_request_id(request: Request[Any, Any, Any]) -> str:
     header_value: str | None = request.headers.get("x-request-id")
     if header_value:
         return header_value
@@ -30,17 +31,17 @@ def _extract_request_id(request: Request) -> str:
 
 def request_context_middleware(app: ASGIApp) -> ASGIApp:
     async def middleware(scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http":
+        if scope["type"] != ScopeType.HTTP:
             await app(scope, receive, send)
             return
 
-        request = Request(scope)
+        request: Request[Any, Any, Any] = Request(scope)
         request_id = _extract_request_id(request)
         token = request_id_var.set(request_id)
         started_at = time.perf_counter()
         response_status = HTTPStatus.INTERNAL_SERVER_ERROR
 
-        async def send_wrapper(message: dict[str, Any]) -> None:
+        async def send_wrapper(message: Any) -> None:
             nonlocal response_status
             if message["type"] == "http.response.start":
                 response_status = HTTPStatus(message["status"])

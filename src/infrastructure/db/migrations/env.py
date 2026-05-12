@@ -4,16 +4,16 @@ import asyncio
 import sys
 from pathlib import Path
 
+from alembic import context  # noqa: E402
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context  # noqa: E402
 
 SRC_DIR = Path(__file__).resolve().parents[3]
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
+import infrastructure.db.models  # noqa: F401, E402
 from configs.env import Settings  # noqa: E402
 from infrastructure.db.base import Base  # noqa: E402
 

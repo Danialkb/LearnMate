@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from litestar import Request, Response
 
@@ -7,7 +8,10 @@ from api.middlewares.request_context import get_request_id
 logger = logging.getLogger(__name__)
 
 
-def unhandled_exception_handler(request: Request, exc: Exception) -> Response:
+def unhandled_exception_handler(
+    request: Request[Any, Any, Any],
+    exc: Exception,
+) -> Response[dict[str, str]]:
     logger.exception(
         "Unhandled exception request_id=%s path=%s",
         get_request_id(),

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "7b2f2b8a0c31"
@@ -13,11 +14,12 @@ depends_on = None
 
 
 def upgrade() -> None:
-    document_summary_style = sa.Enum(
+    document_summary_style = postgresql.ENUM(
         "brief",
         "detailed",
         "bullets",
         name="document_summary_style",
+        create_type=False,
     )
     document_summary_style.create(op.get_bind(), checkfirst=True)
 

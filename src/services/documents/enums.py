@@ -29,6 +29,11 @@ class DocumentSummaryStyle(str, enum.Enum):
     BULLETS = "bullets"
 
 
+class QuizGenerationMode(str, enum.Enum):
+    DOCUMENT = "document"
+    QUERY = "query"
+
+
 class ProcessingJobType(str, enum.Enum):
     EXTRACT_TEXT = "EXTRACT_TEXT"
     CHUNKING = "CHUNKING"

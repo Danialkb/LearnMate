@@ -11,7 +11,7 @@ from api.middlewares.request_context import get_request_id
 from configs.env import Settings
 
 
-class RequestAwareRichHandler(RichHandler):  # type: ignore[misc]
+class RequestAwareRichHandler(RichHandler):  # type: ignore[misc, unused-ignore]
     def render_message(self, record: logging.LogRecord, message: str) -> Text:
         message_text = cast(Text, super().render_message(record, message))
         request_id = getattr(record, "request_id", get_request_id())

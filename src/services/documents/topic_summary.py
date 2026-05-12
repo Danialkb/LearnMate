@@ -136,7 +136,8 @@ class TopicSummaryService:
                 return "detailed, structured explanation with key sections"
             case DocumentSummaryStyle.BULLETS:
                 return "bullet points with the most important ideas"
-        raise ValueError(f"Unsupported summary style: {style}")
+            case _:
+                raise ValueError(f"Unsupported summary style: {style}")
 
     @staticmethod
     def _trim_text(text: str) -> str:

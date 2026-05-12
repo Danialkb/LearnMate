@@ -4,6 +4,7 @@ from litestar.datastructures import State
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from infrastructure.db.repositories.documents import DocumentRepositoryImpl
+from infrastructure.db.repositories.quizzes import QuizRepositoryImpl
 from infrastructure.llm.embeddings import OpenAIEmbeddingClient
 from infrastructure.storage.s3 import S3Storage
 from infrastructure.vector import QdrantDocumentVectorIndex
@@ -27,6 +28,10 @@ def get_s3_storage(state: State) -> S3Storage:
 
 def get_document_repository(session: AsyncSession) -> DocumentRepositoryImpl:
     return DocumentRepositoryImpl(session)
+
+
+def get_quiz_repository(session: AsyncSession) -> QuizRepositoryImpl:
+    return QuizRepositoryImpl(session)
 
 
 def get_text_extractor() -> DocumentTextExtractor:

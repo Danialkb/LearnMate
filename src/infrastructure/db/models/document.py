@@ -1,3 +1,4 @@
+import typing
 import uuid
 from datetime import datetime
 from typing import Any
@@ -20,6 +21,9 @@ from services.documents.enums import (
     DocumentSourceType,
     DocumentSummaryStyle,
 )
+
+if typing.TYPE_CHECKING:
+    from infrastructure.db.models import DocumentQuiz
 
 
 class Document(UUIDMixin, TimestampMixin, Base):
@@ -51,6 +55,10 @@ class Document(UUIDMixin, TimestampMixin, Base):
         order_by="DocumentChunk.chunk_index",
     )
     summaries: Mapped[list["DocumentSummary"]] = relationship(
+        back_populates="document",
+        cascade="all, delete-orphan",
+    )
+    quizzes: Mapped[list["DocumentQuiz"]] = relationship(
         back_populates="document",
         cascade="all, delete-orphan",
     )

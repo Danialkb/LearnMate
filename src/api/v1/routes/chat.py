@@ -12,7 +12,7 @@ from infrastructure.logging import get_logger
 from infrastructure.vector import QdrantDocumentVectorIndex
 from services.documents.retrieval import DocumentRetrievalService, RetrievedChunk
 from services.documents.topic_summary import TopicSummaryService
-from services.llm.chat_agent import ChatAgentService
+from services.llm.agents.chat import ChatAgent
 from services.llm.enums import LLMUseCase
 from services.llm.rag import RAGAnswerService
 
@@ -49,7 +49,7 @@ async def chat(
         retrieval=retrieval,
         llm=llm_factory.create(LLMUseCase.SUMMARY),
     )
-    chat_agent = ChatAgentService(
+    chat_agent = ChatAgent(
         model=llm_factory.create(LLMUseCase.CHAT),
         rag=rag_service,
         topic_summary=topic_summary_service,

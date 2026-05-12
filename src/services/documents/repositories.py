@@ -12,6 +12,7 @@ from services.documents.enums import (
     DocumentLifecycleStatus,
     DocumentSourceType,
     DocumentSummaryStyle,
+    QuizGenerationMode,
 )
 
 if TYPE_CHECKING:
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
         DocumentSource,
         DocumentSummary,
     )
+    from infrastructure.db.models.quiz import DocumentQuiz, QuizAttempt
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +70,30 @@ class DocumentSummarySaveData:
     source_document_version: int
 
 
+@dataclass(frozen=True, slots=True)
+class DocumentQuizSaveData:
+    document_id: UUID | None
+    title: str | None
+    query: str | None
+    generation_mode: QuizGenerationMode
+    language: str | None
+    question_count: int
+    payload: Mapping[str, object]
+    source_payload: Sequence[Mapping[str, object]]
+    prompt_version: str
+    source_document_version: int | None
+
+
+@dataclass(frozen=True, slots=True)
+class QuizAttemptCreateData:
+    quiz_id: UUID
+    document_id: UUID | None
+    answers: Sequence[Mapping[str, object]]
+    score: int
+    max_score: int
+    result_payload: Sequence[Mapping[str, object]]
+
+
 class DocumentRepository(ABC):
     @abstractmethod
     async def create_document(self, data: DocumentCreateData) -> Document: ...
@@ -110,3 +136,29 @@ class DocumentRepository(ABC):
 
     @abstractmethod
     async def save_summary(self, data: DocumentSummarySaveData) -> DocumentSummary: ...
+
+
+class QuizRepository(ABC):
+    @abstractmethod
+    async def get_quiz_by_id(self, quiz_id: UUID) -> DocumentQuiz | None: ...
+
+    @abstractmethod
+    async def get_quiz(
+        self,
+        *,
+        document_id: UUID | None,
+        generation_mode: QuizGenerationMode,
+        source_document_version: int | None,
+    ) -> DocumentQuiz | None: ...
+
+    @abstractmethod
+    async def list_document_quizzes(self, document_id: UUID) -> list[DocumentQuiz]: ...
+
+    @abstractmethod
+    async def save_quiz(self, data: DocumentQuizSaveData) -> DocumentQuiz: ...
+
+    @abstractmethod
+    async def create_attempt(self, data: QuizAttemptCreateData) -> QuizAttempt: ...
+
+    @abstractmethod
+    async def list_quiz_attempts(self, quiz_id: UUID) -> list[QuizAttempt]: ...
