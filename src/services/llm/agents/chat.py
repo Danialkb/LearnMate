@@ -118,7 +118,11 @@ class ChatAgent:
                 "For summary style, infer brief, detailed, or bullets from the "
                 "request. Default to brief.\n"
                 "Answer in the user's language. Do not claim that uploaded "
-                "sources were used unless a tool result used them."
+                "sources were used unless a tool result used them. For learning "
+                "questions, give a clear explanation with the main idea, key "
+                "details, and a short example or practical implication when "
+                "useful; avoid one-sentence answers unless the user explicitly "
+                "asks for a short reply."
             ),
         )
         result = await agent.ainvoke(
