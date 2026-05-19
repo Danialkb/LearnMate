@@ -6,8 +6,12 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 from uuid import UUID
 
+from langchain_core.runnables import RunnableConfig
+from langsmith import traceable
+
 from services.documents.enums import DocumentLifecycleStatus, DocumentSummaryStyle
 from services.documents.repositories import DocumentRepository, DocumentSummarySaveData
+from services.llm.tracing import llm_run_config
 
 if TYPE_CHECKING:
     from infrastructure.db.models.document import DocumentChunk, DocumentSummary
@@ -19,7 +23,11 @@ MAX_GROUP_CHARS = 12_000
 
 
 class SummaryChatModel(Protocol):
-    async def ainvoke(self, input: str) -> object: ...
+    async def ainvoke(
+        self,
+        input: str,
+        config: RunnableConfig | None = None,
+    ) -> object: ...
 
 
 class SummaryError(Exception):
@@ -42,6 +50,23 @@ class DocumentSummaryNotFoundError(SummaryError): ...
 class GeneratedSummary:
     summary: DocumentSummary
     cached: bool
+
+
+def _summary_inputs(inputs: dict[str, object]) -> dict[str, object]:
+    return {
+        "document_id": str(inputs.get("document_id")),
+        "style": str(inputs.get("style")),
+        "refresh": inputs.get("refresh"),
+    }
+
+
+def _summary_outputs(outputs: object) -> dict[str, object]:
+    cached = getattr(outputs, "cached", None)
+    summary = getattr(outputs, "summary", None)
+    return {
+        "cached": cached,
+        "summary_id": str(getattr(summary, "id", "")) or None,
+    }
 
 
 class DocumentSummaryService:
@@ -73,6 +98,13 @@ class DocumentSummaryService:
             raise DocumentSummaryNotFoundError
         return summary
 
+    @traceable(
+        name="GenerateDocumentSummary",
+        run_type="chain",
+        tags=["learnmate", "summary"],
+        process_inputs=_summary_inputs,
+        process_outputs=_summary_outputs,
+    )
     async def generate_summary(
         self,
         *,
@@ -137,7 +169,20 @@ class DocumentSummaryService:
                 style=style,
                 context=self._format_group(groups[0]),
             )
-            return self._response_text(await self._llm.ainvoke(prompt))
+            return self._response_text(
+                await self._llm.ainvoke(
+                    prompt,
+                    config=llm_run_config(
+                        run_name="DocumentSummaryFinal",
+                        tags=["summary"],
+                        metadata={
+                            "style": style.value,
+                            "language": language,
+                            "chunk_group_count": len(groups),
+                        },
+                    ),
+                )
+            )
 
         partial_summaries: list[str] = []
         for index, group in enumerate(groups, start=1):
@@ -150,7 +195,21 @@ class DocumentSummaryService:
                 context=self._format_group(group),
             )
             partial_summaries.append(
-                self._response_text(await self._llm.ainvoke(prompt))
+                self._response_text(
+                    await self._llm.ainvoke(
+                        prompt,
+                        config=llm_run_config(
+                            run_name="DocumentSummaryPartial",
+                            tags=["summary", "summary-partial"],
+                            metadata={
+                                "style": style.value,
+                                "language": language,
+                                "chunk_group_index": index,
+                                "chunk_group_count": len(groups),
+                            },
+                        ),
+                    )
+                )
             )
 
         final_context = "\n\n".join(
@@ -163,7 +222,20 @@ class DocumentSummaryService:
             style=style,
             context=final_context,
         )
-        return self._response_text(await self._llm.ainvoke(prompt))
+        return self._response_text(
+            await self._llm.ainvoke(
+                prompt,
+                config=llm_run_config(
+                    run_name="DocumentSummaryFinal",
+                    tags=["summary"],
+                    metadata={
+                        "style": style.value,
+                        "language": language,
+                        "chunk_group_count": len(groups),
+                    },
+                ),
+            )
+        )
 
     @staticmethod
     def _group_chunks(chunks: Sequence[DocumentChunk]) -> list[list[DocumentChunk]]:

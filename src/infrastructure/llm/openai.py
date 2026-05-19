@@ -14,11 +14,18 @@ class LLMFactory:
         self.settings = settings
 
     def create(self, use_case: LLMUseCase) -> ChatOpenAI:
+        use_case_name = use_case.value.lower()
         base_config = {
             "model": self.settings.LLM_MODEL,
             "api_key": self.settings.OPENAI_API_KEY,
             "max_retries": 3,
             "timeout": 30,
+            "tags": ["learnmate", use_case_name],
+            "metadata": {
+                "app": "learnmate",
+                "use_case": use_case_name,
+                "ls_model_name": f"{self.settings.LLM_MODEL}-{use_case_name}",
+            },
         }
 
         match use_case:

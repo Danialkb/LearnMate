@@ -2,10 +2,19 @@ import logging
 from typing import Any
 
 from litestar import Request, Response
+from litestar.exceptions import HTTPException
+from litestar.exceptions.responses import create_exception_response
 
 from api.middlewares.request_context import get_request_id
 
 logger = logging.getLogger(__name__)
+
+
+def http_exception_handler(
+    request: Request[Any, Any, Any],
+    exc: HTTPException,
+) -> Response[Any]:
+    return create_exception_response(request=request, exc=exc)
 
 
 def unhandled_exception_handler(

@@ -5,7 +5,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from typing import Protocol
 
+from langchain_core.runnables import RunnableConfig
+from langsmith import traceable
+
 from services.documents.retrieval import DocumentRetrievalService, RetrievedChunk
+from services.llm.tracing import llm_run_config
 
 logger = logging.getLogger(__name__)
 
@@ -14,13 +18,32 @@ MAX_SOURCE_TEXT_CHARS = 2_000
 
 
 class RAGChatModel(Protocol):
-    async def ainvoke(self, input: str) -> object: ...
+    async def ainvoke(
+        self,
+        input: str,
+        config: RunnableConfig | None = None,
+    ) -> object: ...
 
 
 @dataclass(frozen=True, slots=True)
 class RAGAnswer:
     answer: str
     sources: list[RetrievedChunk]
+
+
+def _rag_inputs(inputs: dict[str, object]) -> dict[str, object]:
+    return {
+        "question": inputs.get("question"),
+        "limit": inputs.get("limit"),
+        "document_id": inputs.get("document_id"),
+        "score_threshold": inputs.get("score_threshold"),
+    }
+
+
+def _rag_outputs(outputs: object) -> dict[str, object]:
+    sources = getattr(outputs, "sources", [])
+    source_count = len(sources) if isinstance(sources, list) else None
+    return {"source_count": source_count}
 
 
 class RAGAnswerService:
@@ -33,6 +56,13 @@ class RAGAnswerService:
         self._retrieval = retrieval
         self._llm = llm
 
+    @traceable(
+        name="RAGAnswer",
+        run_type="chain",
+        tags=["learnmate", "rag"],
+        process_inputs=_rag_inputs,
+        process_outputs=_rag_outputs,
+    )
     async def answer(
         self,
         *,
@@ -59,7 +89,19 @@ class RAGAnswerService:
             )
         prompt = self._build_prompt(question=question, chunks=sources)
         logger.debug("Built RAG prompt with %s sources", len(sources))
-        response = await self._llm.ainvoke(prompt)
+        response = await self._llm.ainvoke(
+            prompt,
+            config=llm_run_config(
+                run_name="RAGGenerateAnswer",
+                tags=["rag"],
+                metadata={
+                    "document_id": document_id,
+                    "source_count": len(sources),
+                    "limit": limit,
+                    "score_threshold": score_threshold,
+                },
+            ),
+        )
         return RAGAnswer(answer=self._response_text(response), sources=sources)
 
     @classmethod

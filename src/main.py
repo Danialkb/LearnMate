@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import uvicorn
 from litestar import Litestar
+from litestar.exceptions import HTTPException
 
-from api.exception import unhandled_exception_handler
+from api.exception import http_exception_handler, unhandled_exception_handler
 from api.middlewares.request_context import request_context_middleware
 from api.v1.routes import main_router
 from configs.env import Settings
 from infrastructure.db.session import DatabaseService
+from infrastructure.llm.langsmith import configure_langsmith
 from infrastructure.llm.openai import LLMFactory
 from infrastructure.logging import configure_logging, get_logger
 
@@ -17,6 +19,7 @@ def create_app() -> Litestar:
     database_service = DatabaseService(settings)
 
     configure_logging(settings)
+    configure_langsmith(settings)
     logger = get_logger(__name__)
     logger.info(
         "Starting %s in %s mode",
@@ -29,8 +32,10 @@ def create_app() -> Litestar:
         debug=settings.DEBUG,
         middleware=[request_context_middleware],
         exception_handlers={
+            HTTPException: http_exception_handler,
             Exception: unhandled_exception_handler,
         },
+        request_max_body_size=settings.REQUEST_MAX_BODY_SIZE_BYTES,
         on_shutdown=[database_service.dispose],
     )
     app.state.settings = settings

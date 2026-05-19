@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from langchain.agents import create_agent
+from langsmith import traceable
 
 from services.documents.retrieval import RetrievedChunk
 from services.documents.topic_summary import TopicSummaryService
@@ -12,6 +13,7 @@ from services.llm.agents.tools import (
     ChatAgentToolState,
 )
 from services.llm.rag import RAGAnswerService
+from services.llm.tracing import llm_run_config
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,6 +22,25 @@ class ChatAgentAnswer:
     sources: list[RetrievedChunk]
     intent: str
     used_general_knowledge: bool
+
+
+def _chat_agent_inputs(inputs: dict[str, object]) -> dict[str, object]:
+    return {
+        "message": inputs.get("message"),
+        "limit": inputs.get("limit"),
+        "document_id": inputs.get("document_id"),
+        "score_threshold": inputs.get("score_threshold"),
+    }
+
+
+def _chat_agent_outputs(outputs: object) -> dict[str, object]:
+    sources = getattr(outputs, "sources", [])
+    source_count = len(sources) if isinstance(sources, list) else None
+    return {
+        "intent": getattr(outputs, "intent", None),
+        "source_count": source_count,
+        "used_general_knowledge": getattr(outputs, "used_general_knowledge", None),
+    }
 
 
 class ChatAgent:
@@ -34,6 +55,13 @@ class ChatAgent:
         self._rag = rag
         self._topic_summary = topic_summary
 
+    @traceable(
+        name="ChatAgentAnswer",
+        run_type="chain",
+        tags=["learnmate", "chat-agent"],
+        process_inputs=_chat_agent_inputs,
+        process_outputs=_chat_agent_outputs,
+    )
     async def answer(
         self,
         *,
@@ -94,7 +122,16 @@ class ChatAgent:
             ),
         )
         result = await agent.ainvoke(
-            {"messages": [{"role": "user", "content": message}]}
+            {"messages": [{"role": "user", "content": message}]},
+            config=llm_run_config(
+                run_name="ChatAgentRouter",
+                tags=["chat-agent"],
+                metadata={
+                    "document_id": document_id,
+                    "limit": limit,
+                    "score_threshold": score_threshold,
+                },
+            ),
         )
         answer = self._last_message_text(result)
 

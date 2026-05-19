@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     LOG_FILE: str = "logs/learnmate.log"
     LOG_MAX_BYTES: int = 5 * 1024 * 1024
     LOG_BACKUP_COUNT: int = 3
+    REQUEST_MAX_BODY_SIZE_BYTES: int = Field(
+        default=64 * 1024 * 1024,
+        alias="REQUEST_MAX_BODY_SIZE_BYTES",
+    )
 
     LLM_PROVIDER: str = Field(default="openai", alias="LLM_PROVIDER")
     LLM_MODEL: str = Field(default="gpt-5.4-mini", alias="LLM_MODEL")
@@ -36,6 +40,14 @@ class Settings(BaseSettings):
         default=1536,
         alias="OPENAI_EMBEDDING_DIMENSIONS",
     )
+
+    LANGSMITH_TRACING: bool = Field(default=False, alias="LANGSMITH_TRACING")
+    LANGSMITH_API_KEY: str | None = Field(default=None, alias="LANGSMITH_API_KEY")
+    LANGSMITH_PROJECT: str = Field(
+        default="learnmate-local",
+        alias="LANGSMITH_PROJECT",
+    )
+    LANGSMITH_ENDPOINT: str | None = Field(default=None, alias="LANGSMITH_ENDPOINT")
 
     QDRANT_URL: str = Field(default="http://localhost:6333", alias="QDRANT_URL")
     QDRANT_API_KEY: str | None = Field(default=None, alias="QDRANT_API_KEY")

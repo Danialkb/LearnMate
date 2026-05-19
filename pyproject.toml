@@ -9,6 +9,7 @@ dependencies = [
     "langchain>=0.3.0",
     "langchain-openai>=0.2.0",
     "langgraph>=0.2.0",
+    "langsmith>=0.4.0",
     "pydantic-settings>=2.14.0",
     "python-dotenv>=1.2.2",
     "rich>=14.0.0",

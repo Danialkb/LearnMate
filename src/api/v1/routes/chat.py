@@ -15,6 +15,7 @@ from services.documents.topic_summary import TopicSummaryService
 from services.llm.agents.chat import ChatAgent
 from services.llm.enums import LLMUseCase
 from services.llm.rag import RAGAnswerService
+from services.llm.tracing import llm_run_config
 
 logger = get_logger(__name__)
 
@@ -29,7 +30,14 @@ async def chat(
     logger.info("Received chat request")
     if not data.use_rag:
         llm = llm_factory.create(LLMUseCase.CHAT)
-        response = await llm.ainvoke(data.message)
+        response = await llm.ainvoke(
+            data.message,
+            config=llm_run_config(
+                run_name="DirectChat",
+                tags=["chat", "general-knowledge"],
+                metadata={"use_rag": False},
+            ),
+        )
         logger.info("Chat response generated")
         return ChatResponse(
             answer=str(response.content),

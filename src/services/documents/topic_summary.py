@@ -4,13 +4,21 @@ from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from typing import Protocol
 
+from langchain_core.runnables import RunnableConfig
+from langsmith import traceable
+
 from services.documents.enums import DocumentSummaryStyle
 from services.documents.retrieval import DocumentRetrievalService, RetrievedChunk
 from services.llm.rag import DEFAULT_SCORE_THRESHOLD, MAX_SOURCE_TEXT_CHARS
+from services.llm.tracing import llm_run_config
 
 
 class TopicSummaryChatModel(Protocol):
-    async def ainvoke(self, input: str) -> object: ...
+    async def ainvoke(
+        self,
+        input: str,
+        config: RunnableConfig | None = None,
+    ) -> object: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,6 +26,25 @@ class TopicSummary:
     answer: str
     sources: list[RetrievedChunk]
     used_general_knowledge: bool
+
+
+def _topic_summary_inputs(inputs: dict[str, object]) -> dict[str, object]:
+    return {
+        "topic": inputs.get("topic"),
+        "style": str(inputs.get("style")),
+        "limit": inputs.get("limit"),
+        "document_id": inputs.get("document_id"),
+        "score_threshold": inputs.get("score_threshold"),
+    }
+
+
+def _topic_summary_outputs(outputs: object) -> dict[str, object]:
+    sources = getattr(outputs, "sources", [])
+    source_count = len(sources) if isinstance(sources, list) else None
+    return {
+        "source_count": source_count,
+        "used_general_knowledge": getattr(outputs, "used_general_knowledge", None),
+    }
 
 
 class TopicSummaryService:
@@ -30,6 +57,13 @@ class TopicSummaryService:
         self._retrieval = retrieval
         self._llm = llm
 
+    @traceable(
+        name="SummarizeTopic",
+        run_type="chain",
+        tags=["learnmate", "topic-summary"],
+        process_inputs=_topic_summary_inputs,
+        process_outputs=_topic_summary_outputs,
+    )
     async def summarize(
         self,
         *,
@@ -47,7 +81,16 @@ class TopicSummaryService:
         sources = self._filter_sources(chunks, score_threshold=score_threshold)
         if not sources:
             response = await self._llm.ainvoke(
-                self._build_general_prompt(topic=topic, style=style)
+                self._build_general_prompt(topic=topic, style=style),
+                config=llm_run_config(
+                    run_name="TopicSummaryGeneral",
+                    tags=["topic-summary", "general-knowledge"],
+                    metadata={
+                        "style": style.value,
+                        "document_id": document_id,
+                        "source_count": 0,
+                    },
+                ),
             )
             return TopicSummary(
                 answer=self._response_text(response),
@@ -56,7 +99,17 @@ class TopicSummaryService:
             )
 
         response = await self._llm.ainvoke(
-            self._build_grounded_prompt(topic=topic, style=style, chunks=sources)
+            self._build_grounded_prompt(topic=topic, style=style, chunks=sources),
+            config=llm_run_config(
+                run_name="TopicSummaryGrounded",
+                tags=["topic-summary", "grounded"],
+                metadata={
+                    "style": style.value,
+                    "document_id": document_id,
+                    "source_count": len(sources),
+                    "score_threshold": score_threshold,
+                },
+            ),
         )
         return TopicSummary(
             answer=self._response_text(response),

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from langsmith import traceable
+
 from services.documents.vector_index import DocumentVectorIndex, EmbeddingClient
 
 
@@ -17,6 +19,20 @@ class RetrievedChunk:
     page_end: int | None
 
 
+def _retrieval_inputs(inputs: dict[str, object]) -> dict[str, object]:
+    return {
+        "query": inputs.get("query"),
+        "limit": inputs.get("limit"),
+        "document_id": inputs.get("document_id"),
+    }
+
+
+def _retrieval_outputs(outputs: object) -> dict[str, object]:
+    if not isinstance(outputs, list):
+        return {"result_type": type(outputs).__name__}
+    return {"chunk_count": len(outputs)}
+
+
 class DocumentRetrievalService:
     def __init__(
         self,
@@ -27,6 +43,13 @@ class DocumentRetrievalService:
         self._embeddings = embeddings
         self._vector_index = vector_index
 
+    @traceable(
+        name="RetrieveDocumentChunks",
+        run_type="retriever",
+        tags=["learnmate", "retrieval"],
+        process_inputs=_retrieval_inputs,
+        process_outputs=_retrieval_outputs,
+    )
     async def retrieve(
         self,
         *,
